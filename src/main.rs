@@ -1,9 +1,7 @@
-extern crate clap;
 extern crate num;
 extern crate image;
 extern crate crossbeam;
 
-use clap::{App, Arg};
 use num::Complex;
 use image::ColorType;
 use image::png::PNGEncoder;
@@ -80,12 +78,6 @@ fn write_image(filename: &str, pixels: &[u8], bounds: (usize, usize))
 
 
 fn main() {
-    let matches = App::new("argparse")
-        .arg(Arg::with_name("max_iter")
-             .help("max iteration")
-             .long("iter"))
-        .get_matches();
-
     let bounds: (usize, usize) = (1000, 1000);
     
     let upper_left: Complex<f64> = Complex { re: -1.5, im: 1.0 };

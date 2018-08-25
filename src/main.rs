@@ -1,13 +1,11 @@
 extern crate num;
-extern crate image;
 extern crate crossbeam;
+extern crate piston_window;
 
 use num::Complex;
-use image::ColorType;
-use image::png::PNGEncoder;
-use std::fs::File;
+use piston_window::*;
 
-fn escape_time(c: Complex<f64>, max_iter: u16) -> Option<u16> {
+fn escape_time(c: Complex<f64>, max_iter: u32) -> Option<u32> {
     let mut z = Complex { re: 0.0, im: 0.0 };
     for i in 0..max_iter {
         z = z * z + c;
@@ -32,16 +30,8 @@ fn pixel_to_point(bounds: (usize, usize),
     }
 }
 
-#[test]
-fn test_pixel_to_point() {
-    assert_eq!(pixel_to_point((100, 100), (25, 75),
-                              Complex { re: -1.0, im: 1.0 },
-                              Complex { re: 1.0, im: -1.0 }),
-               Complex { re: -0.5, im: -0.5 });
-}
-
-fn render(pixels: &mut [u8],
-          max_iter: u16,
+fn render(pixels: &mut [u32],
+          max_iter: u32,
           bounds: (usize, usize),
           upper_left: Complex<f64>,
           lower_right: Complex<f64>)
@@ -55,35 +45,21 @@ fn render(pixels: &mut [u8],
             pixels[row * bounds.0 + col] = 
                 match escape_time(point, max_iter) {
                     None => 0,
-                    Some(count) =>  {
-                        let val = max_iter - count as u16;
-                        (val as f32 * std::u8::MAX as f32 / max_iter as f32) as u8
-                    }
+                    Some(count) => max_iter - count as u32,
                 };
         }
     }
 }
 
-fn write_image(filename: &str, pixels: &[u8], bounds: (usize, usize))
-    -> Result<(), std::io::Error>
-{
-    let output = File::create(filename)?;
-
-    let encoder = PNGEncoder::new(output);
-    encoder.encode(&pixels,
-                   bounds.0 as u32, bounds.1 as u32,
-                   ColorType::Gray(8))?;
-    Ok(())
-}
-
 
 fn main() {
-    let bounds: (usize, usize) = (1000, 1000);
+    let bounds: (usize, usize) = (500, 500);
+    let pixel_size: f64 = 1.0;
     
     let upper_left: Complex<f64> = Complex { re: -1.5, im: 1.0 };
     let lower_right: Complex<f64> = Complex { re: 0.5, im: -1.0 };
 
-    let max_iter: u16 = 55;
+    let max_iter: u32 = 50;
         
     let mut pixels = vec![0; bounds.0 * bounds.1];
 
@@ -92,7 +68,7 @@ fn main() {
     let rows_per_band = bounds.1 / threads + 1;
 
     {
-        let bands: Vec<&mut [u8]> =
+        let bands: Vec<&mut [u32]> =
             pixels.chunks_mut(rows_per_band * bounds.0)
                   .collect();
         crossbeam::scope(|spawner| {
@@ -113,7 +89,30 @@ fn main() {
         });
     }
 
-    let filename = String::from("mandel.png");
-    write_image(&filename, &mut pixels, bounds)
-        .expect("Error writing PNG file");
+    let canvas_width = bounds.0 as u32 * pixel_size as u32;
+    let canvas_height = bounds.1 as u32 * pixel_size as u32;
+    let mut window: PistonWindow = WindowSettings::new(
+        "Mandelbrot Application",
+        [canvas_width, canvas_height]
+        )
+        .exit_on_esc(true)
+        .build()
+        .unwrap();
+
+    while let Some(e) = window.next() {
+        window.draw_2d(&e, |c, g| {
+            clear([0.0, 0.0, 0.0, 1.0], g);
+
+            for i in 0..pixels.len() {
+                let x_pos = i % bounds.0;
+                let y_pos = i / bounds.1;
+                let intensity = pixels[i] as f32 / max_iter as f32;
+                rectangle([intensity, intensity, intensity, 1.0],
+                          [x_pos as f64 * pixel_size,
+                           y_pos as f64 * pixel_size,
+                           pixel_size, pixel_size],
+                          c.transform, g);
+            }
+        });
+    }
 }

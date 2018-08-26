@@ -5,6 +5,6 @@ authors = ["velvetops <quantumular@gmail.com>"]
 
 [dependencies]
 num = "0.2.0"
-rayon = "1.0.2"
+conrod = "0.61.0"
 piston_window = "0.80.0"
 crossbeam = "0.4.1"

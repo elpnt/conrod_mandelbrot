@@ -1,5 +1,6 @@
 extern crate num;
 extern crate crossbeam;
+#[macro_use] extern crate conrod;
 extern crate piston_window;
 
 use num::Complex;
@@ -101,7 +102,7 @@ fn main() {
 
     while let Some(e) = window.next() {
         window.draw_2d(&e, |c, g| {
-            clear([0.0, 0.0, 0.0, 1.0], g);
+            clear([0.0, 0.0, 0.0, 0.0], g);
 
             for i in 0..pixels.len() {
                 let x_pos = i % bounds.0;
